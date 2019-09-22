@@ -39,15 +39,15 @@ func DownloadFilesSimultaneously(urls []string) ([][]byte, error) {
 			errch <- nil
 		}(url)
 	}
+	// TODO: with builder
 	var allErrors string
 	results := make([][]byte, 0, len(urls))
 	for i := 0; i < len(urls); i++ {
-		result := <-done
+		results = append(results, <-done)
 		if err := <-errch; err != nil {
 			// allErrors = fmt.Sprintf("%v %v", allErrors, err)
 			allErrors += " " + err.Error()
 		}
-		results = append(results, result)
 	}
 	var err error
 	if allErrors != "" {
