@@ -65,7 +65,11 @@ func downloadAllFromFileSimultaneously(filename, separator, resultDir string) er
 	if err != nil {
 		return err
 	}
-	err = downloadAllSymultaneously(infos, resultDir)
+	if _, err := os.Stat(resultDir); os.IsNotExist(err) {
+		os.MkdirAll(resultDir, os.ModePerm)
+	}
+	infos = addToFilename(resultDir, infos)
+	err = downloader.DownloadFilesSimultaneous(infos)
 	if err != nil {
 		return err
 	}
@@ -78,32 +82,10 @@ func clearConsole() error {
 	return command.Run()
 }
 
-func downloadAllSymultaneously(infos []downloader.FileInfo, directory string) error {
-	if _, err := os.Stat(directory); os.IsNotExist(err) {
-		os.MkdirAll(directory, os.ModePerm)
+func addToFilename(pathPart string, infos []downloader.FileInfo) []downloader.FileInfo {
+	for i := range infos {
+		filename := infos[i].Filename
+		infos[i].Filename = path.Join(pathPart, filename)
 	}
-	urls := make([]string, len(infos))
-	for i, fi := range infos {
-		urls[i] = fi.URL
-	}
-	// TODO: with max simultaneous limit
-	// TODO: fix names
-	bytes, err := downloader.DownloadSimultaneously(urls)
-	for i, fileBytes := range bytes {
-		if fileBytes == nil {
-			continue
-		}
-		fullPath := path.Join(directory, infos[i].Filename)
-		file, err := os.OpenFile(fullPath, os.O_CREATE, 0644)
-		if err != nil {
-			return err
-		}
-		defer file.Close()
-
-		_, err = file.Write(fileBytes)
-		if err != nil {
-			return nil
-		}
-	}
-	return err
+	return infos
 }
