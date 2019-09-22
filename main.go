@@ -78,16 +78,6 @@ func clearConsole() error {
 	return command.Run()
 }
 
-func appendToFile(filename, text string) error {
-	fout, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		return err
-	}
-	defer fout.Close()
-	_, err = fout.WriteString(text)
-	return err
-}
-
 func downloadAllSymultaneously(infos []downloader.FileInfo, directory string) error {
 	if _, err := os.Stat(directory); os.IsNotExist(err) {
 		os.MkdirAll(directory, os.ModePerm)
