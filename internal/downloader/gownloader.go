@@ -23,3 +23,35 @@ func DownloadFile(url string) ([]byte, error) {
 	}
 	return data.Bytes(), nil
 }
+
+func DownloadFilesSimultaneously(urls []string) ([]byte, error) {
+	done := make(chan []byte, len(urls))
+	errch := make(chan error, len(urls))
+	for _, url := range urls {
+		go func(url string) {
+			bytes, err := DownloadFile(url)
+			if err != nil {
+				errch <- err
+				done <- nil
+				return
+			}
+			done <- bytes
+			errch <- nil
+		}(url)
+	}
+	var allErrors string
+	results := make([][]byte, 0, len(urls))
+	for i := 0; i < len(urls); i++ {
+		result := <-done
+		if err := <-errch; err != nil {
+			// allErrors = fmt.Sprintf("%v %v", allErrors, err)
+			allErrors += " " + err.Error()
+		}
+		results := append(results, result)
+	}
+	var err error
+	if allErrors != "" {
+		err = errors.New(allErrors)
+	}
+	return results, err
+}
