@@ -3,9 +3,11 @@ package downloader
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
+	"strings"
 )
 
 func DownloadFile(url, filepath string) error {
@@ -54,6 +56,30 @@ func DownloadSimultaneously(urls []string) ([][]byte, error) {
 		err = errors.New(allErrors)
 	}
 	return results, err
+}
+
+func DownloadFilesSimultaneous(infos []FileInfo) error {
+	count := len(infos)
+	errch := make(chan error, count)
+	for _, fi := range infos {
+		go func(url, filepath string) {
+			err := DownloadFile(url, filepath)
+			if err != nil {
+				err = fmt.Errorf("%v downloading failed with: %v", filepath, err)
+			}
+			errch <- err
+		}(fi.URL, fi.Filename)
+	}
+	var builder strings.Builder
+	for i := 0; i < count; i++ {
+		if err := <-errch; err != nil {
+			builder.WriteString(fmt.Sprintf("%v; ", err))
+		}
+	}
+	if builder.Len() == 0 {
+		return nil
+	}
+	return errors.New(builder.String())
 }
 
 func download(url string, result io.Writer) error {
