@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	Directory     = "files_"
+	ResultDir     = "files_"
 	InputFile     = "test_tracks.txt"
 	Separator     = ";"
 	MsecDelay     = 400
@@ -24,7 +24,7 @@ func main() {
 	done := make(chan bool)
 	go func() {
 		// downloadFromFile(InputFile, Separator)
-		err := downloadAllFromFileSimultaneously(InputFile, Separator)
+		err := downloadAllFromFileSimultaneously(InputFile, Separator, ResultDir)
 		done <- true
 		if err != nil {
 			panic(err)
@@ -60,12 +60,12 @@ func printPoints(maxPointsCount, msecDelay int, done <-chan bool) {
 	}
 }
 
-func downloadAllFromFileSimultaneously(filename, separator string) error {
+func downloadAllFromFileSimultaneously(filename, separator, resultDir string) error {
 	infos, err := downloader.ReadInfos(filename, separator)
 	if err != nil {
 		return err
 	}
-	err = downloadAllSymultaneously(infos, Directory)
+	err = downloadAllSymultaneously(infos, resultDir)
 	if err != nil {
 		return err
 	}
