@@ -8,20 +8,9 @@ import (
 )
 
 func Download(url string) ([]byte, error) {
-	response, err := http.Get(url)
-	if err != nil {
-		return nil, err
-	}
-	defer response.Body.Close()
-	if response.StatusCode != http.StatusOK {
-		return nil, errors.New(response.Status)
-	}
 	var data bytes.Buffer
-	_, err = io.Copy(&data, response.Body)
-	if err != nil {
-		return nil, err
-	}
-	return data.Bytes(), nil
+	err := download(url, &data)
+	return data.Bytes(), err
 }
 
 func DownloadSimultaneously(urls []string) ([][]byte, error) {
@@ -54,4 +43,17 @@ func DownloadSimultaneously(urls []string) ([][]byte, error) {
 		err = errors.New(allErrors)
 	}
 	return results, err
+}
+
+func download(url string, result io.Writer) error {
+	response, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		return errors.New(response.Status)
+	}
+	_, err = io.Copy(result, response.Body)
+	return err
 }
