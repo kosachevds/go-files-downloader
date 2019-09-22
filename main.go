@@ -129,6 +129,9 @@ func appendToFile(filename, text string) error {
 }
 
 func downloadAllSymultaneously(infos []FileInfo, directory string) error {
+	if _, err := os.Stat(directory); os.IsNotExist(err) {
+		os.MkdirAll(directory, os.ModePerm)
+	}
 	urls := make([]string, len(infos))
 	for i, fi := range infos {
 		urls[i] = fi.url
