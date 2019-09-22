@@ -2,14 +2,15 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"os/exec"
 	"path"
 	"strings"
 	"time"
+
+	// TODO: remade with absolute path
+	"./internal/downloader"
 )
 
 const (
@@ -30,7 +31,7 @@ func main() {
 	done := make(chan bool)
 	go func() {
 		// downloadFromFile(InputFile, Separator)
-		downloadFromFileAsync(InputFile, Separator, 2)
+		downloadAllFromFileSimultaneously(InputFile, Separator)
 		done <- true
 	}()
 
@@ -63,20 +64,12 @@ func printPoints(maxPointsCount, msecDelay int, done <-chan bool) {
 	}
 }
 
-func downloadFromFile(filename, separator string) {
+func downloadAllFromFileSimultaneously(filename, separator string) {
 	infos, err := readInfos(filename, separator)
 	if err != nil {
 		panic(err)
 	}
-	downloadAll(infos, Directory)
-}
-
-func downloadFromFileAsync(filename, separator string, maxSimultaneous int) {
-	infos, err := readInfos(filename, separator)
-	if err != nil {
-		panic(err)
-	}
-	downloadAllAsync(infos, Directory, maxSimultaneous)
+	downloadAllSymultaneously(infos, Directory)
 }
 
 func clearConsole() error {
@@ -113,79 +106,9 @@ func parseInfo(strInfo string) (*FileInfo, error) {
 		return nil, fmt.Errorf("wrong FileInfo format")
 	}
 	url := strInfo[lastSpace+1:]
+	// TODO: trim
 	filename := strInfo[:lastSpace]
 	return &FileInfo{filename, url}, nil
-}
-
-func downloadFile(info *FileInfo, directory string) error {
-	if _, err := os.Stat(directory); os.IsNotExist(err) {
-		os.MkdirAll(directory, os.ModePerm)
-	}
-	var newFileName = path.Join(directory, info.filename)
-	if _, err := os.Stat(newFileName); err == nil {
-		return nil
-	}
-	if len(info.url) == 0 {
-		return fmt.Errorf("empty url")
-	}
-	resp, err := http.Get(info.url)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	fout, err := os.Create(newFileName)
-	if err != nil {
-		return err
-	}
-	defer fout.Close()
-
-	_, err = io.Copy(fout, resp.Body)
-	return err
-}
-
-func downloadAllAsync(files []FileInfo, directory string, maxSimultaneous int) {
-	infosQueue := make(chan *FileInfo, maxSimultaneous)
-	errors := make(chan error, maxSimultaneous)
-
-	go func() {
-		for fi := range infosQueue {
-			go func(fi *FileInfo) {
-				err := downloadFile(fi, directory)
-				if err != nil {
-					err = fmt.Errorf("%v error: %v\n", fi.filename, err)
-				}
-				errors <- err
-			}(fi)
-		}
-		close(errors)
-	}()
-	for i, fi := range files {
-		if i >= maxSimultaneous {
-			err := <-errors
-			if err != nil {
-				appendToFile(EmptyUrlsFile, fmt.Sprint(err))
-			}
-		}
-		infosQueue <- &fi
-	}
-	close(infosQueue)
-	for err := range errors {
-		if err != nil {
-			appendToFile(EmptyUrlsFile, fmt.Sprint(err))
-		}
-	}
-}
-
-func downloadAll(files []FileInfo, directory string) {
-	for i := range files {
-		err := downloadFile(&files[i], directory)
-		if err != nil {
-			appendToFile(EmptyUrlsFile, fmt.Sprintf("%v error: %v\n", files[i].filename, err))
-			// err = fmt.Errorf("Downloading %v error: %v", files[i].filename, err)
-			// panic(err)
-		}
-	}
 }
 
 func appendToFile(filename, text string) error {
@@ -195,5 +118,30 @@ func appendToFile(filename, text string) error {
 	}
 	defer fout.Close()
 	_, err = fout.WriteString(text)
+	return err
+}
+
+func downloadAllSymultaneously(infos []FileInfo, directory string) error {
+	urls := make([]string, len(infos))
+	for i, fi := range infos {
+		urls[i] = fi.url
+	}
+	bytes, err := downloader.DownloadFilesSimultaneously(urls)
+	for i, fileBytes := range bytes {
+		if fileBytes == nil {
+			continue
+		}
+		fullPath := path.Join(directory, infos[i].filename)
+		file, err := os.OpenFile(fullPath, os.O_CREATE, 0644)
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+
+		_, err = file.Write(fileBytes)
+		if err != nil {
+			return nil
+		}
+	}
 	return err
 }
