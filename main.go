@@ -2,11 +2,9 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
-	"strings"
 	"time"
 
 	// TODO: remade with absolute path
@@ -21,11 +19,6 @@ const (
 	MaxPointCount = 10
 	EmptyUrlsFile = "errors.txt"
 )
-
-type FileInfo struct {
-	filename string
-	url      string
-}
 
 func main() {
 	done := make(chan bool)
@@ -68,7 +61,7 @@ func printPoints(maxPointsCount, msecDelay int, done <-chan bool) {
 }
 
 func downloadAllFromFileSimultaneously(filename, separator string) error {
-	infos, err := readInfos(filename, separator)
+	infos, err := downloader.ReadInfos(filename, separator)
 	if err != nil {
 		return err
 	}
@@ -85,39 +78,6 @@ func clearConsole() error {
 	return command.Run()
 }
 
-func readInfos(filename string, separator string) ([]FileInfo, error) {
-	data, err := ioutil.ReadFile(filename)
-	if err != nil {
-		return nil, fmt.Errorf("reading file failed with %v\n", err)
-	}
-	strInfos := strings.Split(string(data), separator)
-	result := make([]FileInfo, len(strInfos))
-	resultCount := 0
-	for _, info := range strInfos {
-		if len(info) < 1 {
-			continue
-		}
-		info, err := parseInfo(info)
-		if err != nil {
-			continue
-		}
-		result[resultCount] = *info
-		resultCount++
-	}
-	return result[:resultCount], nil
-}
-
-func parseInfo(strInfo string) (*FileInfo, error) {
-	lastSpace := strings.LastIndex(strInfo, " ")
-	if lastSpace < 0 {
-		return nil, fmt.Errorf("wrong FileInfo format")
-	}
-	url := strings.TrimSpace(strInfo[lastSpace+1:])
-	// TODO: trim
-	filename := strings.TrimSpace(strInfo[:lastSpace])
-	return &FileInfo{filename, url}, nil
-}
-
 func appendToFile(filename, text string) error {
 	fout, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
@@ -128,13 +88,13 @@ func appendToFile(filename, text string) error {
 	return err
 }
 
-func downloadAllSymultaneously(infos []FileInfo, directory string) error {
+func downloadAllSymultaneously(infos []downloader.FileInfo, directory string) error {
 	if _, err := os.Stat(directory); os.IsNotExist(err) {
 		os.MkdirAll(directory, os.ModePerm)
 	}
 	urls := make([]string, len(infos))
 	for i, fi := range infos {
-		urls[i] = fi.url
+		urls[i] = fi.URL
 	}
 	// TODO: with max simultaneous limit
 	// TODO: fix names
@@ -143,7 +103,7 @@ func downloadAllSymultaneously(infos []FileInfo, directory string) error {
 		if fileBytes == nil {
 			continue
 		}
-		fullPath := path.Join(directory, infos[i].filename)
+		fullPath := path.Join(directory, infos[i].Filename)
 		file, err := os.OpenFile(fullPath, os.O_CREATE, 0644)
 		if err != nil {
 			return err
