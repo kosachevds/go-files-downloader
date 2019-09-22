@@ -105,9 +105,9 @@ func parseInfo(strInfo string) (*FileInfo, error) {
 	if lastSpace < 0 {
 		return nil, fmt.Errorf("wrong FileInfo format")
 	}
-	url := strInfo[lastSpace+1:]
+	url := strings.TrimSpace(strInfo[lastSpace+1:])
 	// TODO: trim
-	filename := strInfo[:lastSpace]
+	filename := strings.TrimSpace(strInfo[:lastSpace])
 	return &FileInfo{filename, url}, nil
 }
 
