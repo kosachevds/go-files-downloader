@@ -24,7 +24,7 @@ func DownloadFile(url string) ([]byte, error) {
 	return data.Bytes(), nil
 }
 
-func DownloadFilesSimultaneously(urls []string) ([]byte, error) {
+func DownloadFilesSimultaneously(urls []string) ([][]byte, error) {
 	done := make(chan []byte, len(urls))
 	errch := make(chan error, len(urls))
 	for _, url := range urls {
@@ -47,7 +47,7 @@ func DownloadFilesSimultaneously(urls []string) ([]byte, error) {
 			// allErrors = fmt.Sprintf("%v %v", allErrors, err)
 			allErrors += " " + err.Error()
 		}
-		results := append(results, result)
+		results = append(results, result)
 	}
 	var err error
 	if allErrors != "" {
