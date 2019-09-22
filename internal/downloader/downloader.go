@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-func DownloadFile(url string) ([]byte, error) {
+func Download(url string) ([]byte, error) {
 	response, err := http.Get(url)
 	if err != nil {
 		return nil, err
@@ -24,12 +24,12 @@ func DownloadFile(url string) ([]byte, error) {
 	return data.Bytes(), nil
 }
 
-func DownloadFilesSimultaneously(urls []string) ([][]byte, error) {
+func DownloadSimultaneously(urls []string) ([][]byte, error) {
 	done := make(chan []byte, len(urls))
 	errch := make(chan error, len(urls))
 	for _, url := range urls {
 		go func(url string) {
-			bytes, err := DownloadFile(url)
+			bytes, err := Download(url)
 			if err != nil {
 				errch <- err
 				done <- nil
