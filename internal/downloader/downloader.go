@@ -5,7 +5,18 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"os"
 )
+
+func DownloadFile(url, filepath string) error {
+	file, err := os.OpenFile(filepath, os.O_CREATE, 0644)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	err = download(url, file)
+	return err
+}
 
 func Download(url string) ([]byte, error) {
 	var data bytes.Buffer
