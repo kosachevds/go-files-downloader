@@ -31,8 +31,11 @@ func main() {
 	done := make(chan bool)
 	go func() {
 		// downloadFromFile(InputFile, Separator)
-		downloadAllFromFileSimultaneously(InputFile, Separator)
+		err := downloadAllFromFileSimultaneously(InputFile, Separator)
 		done <- true
+		if err != nil {
+			panic(err)
+		}
 	}()
 
 	printPoints(MaxPointCount, MsecDelay, done)
@@ -64,12 +67,16 @@ func printPoints(maxPointsCount, msecDelay int, done <-chan bool) {
 	}
 }
 
-func downloadAllFromFileSimultaneously(filename, separator string) {
+func downloadAllFromFileSimultaneously(filename, separator string) error {
 	infos, err := readInfos(filename, separator)
 	if err != nil {
-		panic(err)
+		return err
 	}
-	downloadAllSymultaneously(infos, Directory)
+	err = downloadAllSymultaneously(infos, Directory)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func clearConsole() error {
