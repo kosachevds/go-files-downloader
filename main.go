@@ -136,6 +136,8 @@ func downloadAllSymultaneously(infos []FileInfo, directory string) error {
 	for i, fi := range infos {
 		urls[i] = fi.url
 	}
+	// TODO: with max simultaneous limit
+	// TODO: fix names
 	bytes, err := downloader.DownloadFilesSimultaneously(urls)
 	for i, fileBytes := range bytes {
 		if fileBytes == nil {
