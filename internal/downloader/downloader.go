@@ -94,6 +94,9 @@ func DownloadFilesLimitedSimultaneous(infos []FileInfo, maxSimultaneous int) err
 		}
 		go downloadFileWithChan(fi.URL, fi.Filename, errch)
 	}
+	for i := 0; i < maxSimultaneous; i++ {
+		appendErrorIfNotNil(&builder, <-errch)
+	}
 	if builder.Len() == 0 {
 		return nil
 	}
