@@ -8,7 +8,7 @@ import (
 	"time"
 
 	// TODO: remade with absolute path
-	"./internal/downloader"
+	"filesDownloader/internal/downloader"
 )
 
 const (
@@ -69,6 +69,7 @@ func downloadAllFromFileSimultaneously(filename, separator, resultDir string) er
 		os.MkdirAll(resultDir, os.ModePerm)
 	}
 	infos = addToFilename(resultDir, infos)
+	// TODO: Set simultaneous downloading limit
 	err = downloader.DownloadFilesSimultaneous(infos)
 	if err != nil {
 		return err
