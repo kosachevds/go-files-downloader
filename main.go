@@ -12,19 +12,20 @@ import (
 )
 
 const (
-	ResultDir     = "files_"
-	InputFile     = "test_tracks.txt"
-	Separator     = ";"
-	MsecDelay     = 400
-	MaxPointCount = 10
-	EmptyUrlsFile = "errors.txt"
+	ResultDir       = "files_"
+	InputFile       = "test_tracks.txt"
+	Separator       = ";"
+	MsecDelay       = 400
+	MaxPointCount   = 10
+	EmptyUrlsFile   = "errors.txt"
+	MaxSimultaneous = 3
 )
 
 func main() {
 	done := make(chan bool)
 	go func() {
 		// downloadFromFile(InputFile, Separator)
-		err := downloadAllFromFileSimultaneously(InputFile, Separator, ResultDir)
+		err := downloadAllFromFileSimultaneously(InputFile, Separator, ResultDir, MaxSimultaneous)
 		done <- true
 		if err != nil {
 			panic(err)
@@ -60,7 +61,7 @@ func printPoints(maxPointsCount, msecDelay int, done <-chan bool) {
 	}
 }
 
-func downloadAllFromFileSimultaneously(filename, separator, resultDir string) error {
+func downloadAllFromFileSimultaneously(filename, separator, resultDir string, maxSimultaneous int) error {
 	infos, err := downloader.ReadInfos(filename, separator)
 	if err != nil {
 		return err
@@ -70,7 +71,7 @@ func downloadAllFromFileSimultaneously(filename, separator, resultDir string) er
 	}
 	infos = addToFilename(resultDir, infos)
 	// TODO: Set simultaneous downloading limit
-	err = downloader.DownloadFilesSimultaneous(infos)
+	err = downloader.DownloadFilesLimitedSimultaneous(infos, maxSimultaneous)
 	if err != nil {
 		return err
 	}
