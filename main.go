@@ -7,18 +7,17 @@ import (
 	"path"
 	"time"
 
-	// TODO: remade with absolute path
 	"filesDownloader/internal/downloader"
 )
 
 const (
-	ResultDir       = "files_"
-	InputFile       = "test_tracks.txt"
+	ResultDir       = "files"
+	InputFile       = "tracks.txt"
 	Separator       = ";"
 	MsecDelay       = 400
 	MaxPointCount   = 10
 	EmptyUrlsFile   = "errors.txt"
-	MaxSimultaneous = 3
+	MaxSimultaneous = 5
 )
 
 func main() {
