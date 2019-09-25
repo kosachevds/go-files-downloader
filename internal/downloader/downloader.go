@@ -82,6 +82,39 @@ func DownloadFilesSimultaneous(infos []FileInfo) error {
 	return errors.New(builder.String())
 }
 
+func DownloadFilesLimitedSimultaneous(infos []FileInfo, maxSimultaneous int) error {
+	if maxSimultaneous > len(infos) {
+		maxSimultaneous = len(infos)
+	}
+	errch := make(chan error, maxSimultaneous)
+	var builder strings.Builder
+	for i, fi := range infos {
+		if i >= maxSimultaneous {
+			appendErrorIfNotNil(&builder, <-errch)
+		}
+		go downloadFileWithChan(fi.URL, fi.Filename, errch)
+	}
+	if builder.Len() == 0 {
+		return nil
+	}
+	return errors.New(builder.String())
+}
+
+func downloadFileWithChan(url, filepath string, errch chan<- error) {
+	err := DownloadFile(url, filepath)
+	if err != nil {
+		err = fmt.Errorf("%v downloading failed with: %v", filepath, err)
+	}
+	errch <- err
+}
+
+func appendErrorIfNotNil(builder *strings.Builder, err error) {
+	if err == nil {
+		return
+	}
+	builder.WriteString(fmt.Sprintf("%v;\n", err))
+}
+
 func download(url string, result io.Writer) error {
 	response, err := http.Get(url)
 	if err != nil {
